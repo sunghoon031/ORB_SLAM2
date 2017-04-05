@@ -489,4 +489,27 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     return mTrackedKeyPointsUn;
 }
 
+//////////////////////////////
+// Seong addition starts .. //
+//////////////////////////////
+
+float System::GetSceneMedianDepth()
+{
+	vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+
+	if (vpKFs.size() < 2)
+	{
+		return 0;
+	}
+
+	mSceneMedianDepth = vpKFs.back()->ComputeSceneMedianDepth(2);
+
+	unique_lock<mutex> lock(mMutexState);
+	return mSceneMedianDepth;
+}
+
+//////////////////////////////
+// Seong addition ends ..   //
+//////////////////////////////
+
 } //namespace ORB_SLAM

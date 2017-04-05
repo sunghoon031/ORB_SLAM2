@@ -122,6 +122,17 @@ public:
     std::vector<MapPoint*> GetTrackedMapPoints();
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
+    /////////////////////////////
+    // Seong addition starts ..//
+    /////////////////////////////
+
+    float GetSceneMedianDepth();
+
+    /////////////////////////////
+    // Seong addition ends ..  //
+    /////////////////////////////
+
+
 private:
 
     // Input sensor
@@ -174,6 +185,18 @@ private:
     std::vector<MapPoint*> mTrackedMapPoints;
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
+
+
+    //////////////////////////////
+    // Seong addition starts .. //
+    //////////////////////////////
+
+    float mSceneMedianDepth;
+
+    //////////////////////////////
+    // Seong addition ends ..   //
+    //////////////////////////////
+
 };
 
 }// namespace ORB_SLAM

@@ -31,6 +31,19 @@
 
 #include"../../../include/System.h"
 
+////////////////////////////////
+/// Seong addition starts ... //
+////////////////////////////////
+
+#include "geometry_msgs/TransformStamped.h"
+#include "tf/transform_datatypes.h"
+#include <tf/transform_broadcaster.h>
+#include"../../../include/Map.h"
+#include "std_msgs/Float32.h"
+////////////////////////////////
+/// Seong addition ends...   ///
+////////////////////////////////
+
 using namespace std;
 
 class ImageGrabber
@@ -42,6 +55,7 @@ public:
 
     ORB_SLAM2::System* mpSLAM;
 };
+
 
 int main(int argc, char **argv)
 {
@@ -63,7 +77,28 @@ int main(int argc, char **argv)
     ros::NodeHandle nodeHandler;
     ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
 
-    ros::spin();
+    ///////////////////////////////
+    // Seong Addition starts .. ///
+    ///////////////////////////////
+
+    ros::Publisher pub = nodeHandler.advertise<std_msgs::Float32>("/orb/depth",1);
+
+
+    while (ros::ok())
+    {
+    	float SceneMedianDepth = igb.mpSLAM->GetSceneMedianDepth();
+    	std_msgs::Float32 depth_msg;
+		depth_msg.data = SceneMedianDepth;
+    	pub.publish(depth_msg);
+
+    	ros::spinOnce();
+    }
+
+    ///////////////////////////////
+	// Seong Addition ends   .. ///
+	///////////////////////////////
+
+    //ros::spin();
 
     // Stop all threads
     SLAM.Shutdown();
@@ -90,7 +125,37 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         return;
     }
 
-    mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+    // Seong comment
+    // mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+
+    // Seong modification
+    cv::Mat mTcw = mpSLAM->TrackMonocular(cv_ptr->image,cv_ptr->header.stamp.toSec());
+
+    ////////////////////////////////
+    /// Seong addition starts ... //
+    ////////////////////////////////
+
+    if (mTcw.empty())
+    {
+    	return;
+    }
+
+    cv::Mat mRcw = mTcw.rowRange(0,3).colRange(0,3);
+    cv::Mat mRwc = mRcw.t(); // camera rotational pose
+    cv::Mat mtcw = mTcw.rowRange(0,3).col(3);
+    cv::Mat mOw = -mRcw.t()*mtcw; // camera translational pose
+
+	static tf::TransformBroadcaster br;
+
+	tf::Matrix3x3 R_pose( mRwc.at<float>(0,0), mRwc.at<float>(0,1), mRwc.at<float>(0,2),
+						mRwc.at<float>(1,0), mRwc.at<float>(1,1), mRwc.at<float>(1,2),
+						mRwc.at<float>(2,0), mRwc.at<float>(2,1), mRwc.at<float>(2,2));
+	tf::Vector3 t_pose(mOw.at<float>(0,0), mOw.at<float>(1,0), mOw.at<float>(2,0));
+	tf::Transform transform = tf::Transform(R_pose, t_pose);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "camera_origin", "camera_pose"));
+
+    ////////////////////////////////
+    /// Seong addition ends   ... //
+    ////////////////////////////////
+
 }
-
-
